@@ -1,0 +1,26 @@
+[project]
+name = "migration-sandbox"
+version = "0.1.0"
+requires-python = ">=3.13"
+dependencies = [
+    "pytest>=9.0.3",
+    "ruff>=0.15.12",
+]
+
+[tool.ruff]
+line-length = 88
+target-version = "py312"
+
+[tool.ruff.lint]
+select = [
+    "E",  # All pycodestyle errors
+    "F",  # All pyflakes errors
+    "I",  # All isort errors
+    "UP", # All flake8-unused-imports errors
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
