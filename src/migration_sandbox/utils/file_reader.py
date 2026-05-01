@@ -1,5 +1,5 @@
-from pathlib import Path
 import json
+from pathlib import Path
 
 
 def read_latest_contacts(base_path: str, run_type: str) -> dict:
