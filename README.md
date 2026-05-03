@@ -43,7 +43,24 @@ uv run ruff check .
 
 ## Current example
 
-The utility in `src/migration_sandbox/utils/file_reader.py` reads a `_latest.json` file from a `VCDataGeneration`-style folder structure and returns the parsed JSON payload.
+The utility in `src/migration_sandbox/utils/file_reader.py` reads a `_latest.json` file from a `VCDataGeneration`-style folder structure and returns a validated `ContactDto` instance.
+
+## Contact DTO
+
+The module `src/migration_sandbox/core/contact_dto.py` defines `ContactDto` as the core payload model for contact events.
+
+Fields:
+
+- `agent_id: str`
+- `contact_id: str`
+- `contact_start: str`
+- `master_contact_id: str`
+- `media_type_name: str`
+
+`ContactDto` includes:
+
+- `from_dict(data: dict[str, object]) -> ContactDto` to construct a DTO from JSON data.
+- `__post_init__` validations to ensure required fields are not `None` or empty strings.
 
 ## Notes
 
