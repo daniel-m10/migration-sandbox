@@ -83,8 +83,8 @@ def test_read_latest_contacts_reads_utf8_content(tmp_path: Path) -> None:
     run_dir = tmp_path / "Basic"
     run_dir.mkdir(parents=True)
     data = build_contact_payload(
-        agent_id="José",
-        media_type_name="Voz 📁",
+        agent_id="Zoë",
+        media_type_name="VOICE 📁",
     )
     (run_dir / "_latest.json").write_text(
         json.dumps(data, ensure_ascii=False),
@@ -93,8 +93,8 @@ def test_read_latest_contacts_reads_utf8_content(tmp_path: Path) -> None:
 
     result = read_latest_contacts(str(tmp_path), "Basic")
 
-    assert result.agent_id == "José"
-    assert result.media_type_name == "Voz 📁"
+    assert result.agent_id == "Zoë"
+    assert result.media_type_name == "VOICE 📁"
 
 
 def test_read_latest_contacts_supports_empty_run_type(tmp_path: Path) -> None:

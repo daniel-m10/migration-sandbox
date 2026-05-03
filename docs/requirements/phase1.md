@@ -4,7 +4,7 @@
 
 Library: migration-sandbox
 Purpose: Process, validate and report on ACD contact events.
-Progressively mirrors C#/.NET framework logic in Python.
+Progressively mirrors C#/.NET Core logic in Python.
 
 Existing modules:
 - src/migration_sandbox/utils/file_reader.py
@@ -18,30 +18,30 @@ Existing modules:
 Module: src/migration_sandbox/core/contact_normalizer.py
 Tests: tests/unit/core/test_contact_normalizer.py
 
-### US-01: normalize_agent_id(value: str) -> str
+### US-01: normalize_agent_id(value: str) → str
 - Strip leading and trailing whitespace
 - Convert to lowercase
 - Remove all characters except letters, digits, hyphens and underscores
-- If result is empty string -> raise ValueError("agent_id cannot be empty after normalization")
+- If result is empty string → raise ValueError("agent_id cannot be empty after normalization")
 
 ### US-02: normalize_media_type(value: str) -> str
 - Accept case-insensitive variants and map to canonical uppercase:
-  "voice", "Voice", "VOICE" -> "VOICE"
-  "chat", "Chat", "CHAT" -> "CHAT"
-  "email", "Email", "EMAIL" -> "EMAIL"
-- Unknown value -> raise ValueError(f"Unknown media_type: {value!r}")
+  "voice", "Voice", "VOICE" → "VOICE"
+  "chat", "Chat", "CHAT" → "CHAT"
+  "email", "Email", "EMAIL" → "EMAIL"
+- Unknown value → raise ValueError(f"Unknown media_type: {value!r}")
 
-### US-03: parse_contact_start(value: str | int | float) -> datetime
+### US-03: parse_contact_start(value: str | int | float) → datetime
 - Accept formats: ISO 8601, "YYYY-MM-DD HH:MM:SS", Unix timestamp (int/float)
 - Always return timezone-aware datetime in UTC
-- Invalid input -> raise ValueError(f"Cannot parse contact_start from: {value!r}")
+- Invalid input → raise ValueError(f"Cannot parse contact_start from: {value!r}")
 
-### US-04: validate_master_contact_id(value: str) -> str
+### US-04: validate_master_contact_id(value: str) → str
 - Must be exactly 36 characters (UUID format: xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx)
 - Returns value unchanged if valid
-- Invalid -> raise ValueError(f"master_contact_id must be UUID format, got: {value!r}")
+- Invalid → raise ValueError(f"master_contact_id must be UUID format, got: {value!r}")
 
-### US-05: normalize_contact_dto(dto: ContactDto) -> ContactDto
+### US-05: normalize_contact_dto(dto: ContactDto) → ContactDto
 - Apply US-01 through US-04 to a ContactDto instance
 - Return new normalized ContactDto (do not mutate input)
 - On failure propagate ValueError with field context:
@@ -101,19 +101,19 @@ Fields:
 - validated_at: datetime (UTC, set at creation time)
 
 Methods:
-- add_error(field: str, rule: str, message: str) -> None
-- finalize() -> ValidationResult (sets is_valid based on errors list)
+- add_error(field: str, rule: str, message: str) → None
+- finalize() → ValidationResult (sets is_valid based on errors list)
 
 ### US-08: Business validation rules
-Function: _run_validation_rules(dto: ContactDto) -> list[ValidationError]
+Function: _run_validation_rules(dto: ContactDto) → list[ValidationError]
 
 Rules to implement (each as a separate private function):
 - _check_contact_id_not_master: contact_id must not equal master_contact_id
-- _check_contact_start_not_future: contact_start must be <= datetime.now(UTC)
+- _check_contact_start_not_future: contact_start must be ⇐ datetime.now(UTC)
 - _check_agent_id_length: agent_id must be between 3 and 50 characters
 - _check_media_type_valid: media_type_name must be one of [VOICE, CHAT, EMAIL]
 
-### US-09: validate_contact(dto: ContactDto) -> ValidationResult
+### US-09: validate_contact(dto: ContactDto) → ValidationResult
 - Does NOT raise exceptions
 - Runs all rules from US-08
 - Returns ValidationResult with all errors found (not just the first)
@@ -128,7 +128,7 @@ Properties:
 - total: int
 - valid_count: int
 - invalid_count: int
-- errors_by_field: dict[str, int] (field name -> count of errors for that field)
+- errors_by_field: dict[str, int] (field name → count of errors for that field)
 
 Methods:
 - to_markdown() -> str
@@ -205,7 +205,7 @@ Requirements:
 
 ## Group 5 — Phase 1 Checkpoint
 
-Evidence to present in the main chat (Plan para incrementar metricas de IA):
+Evidence to present in the main chat (Plan to improve AI metrics):
 
 1. GitHub link to migration-sandbox with all 4 modules complete
 2. pytest --cov output showing coverage per module
