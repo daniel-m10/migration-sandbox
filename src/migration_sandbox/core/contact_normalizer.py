@@ -1,6 +1,8 @@
 import re
 from datetime import UTC, datetime
 
+from migration_sandbox.core.contact_dto import ContactDto
+
 
 def normalize_agent_id(value: str) -> str:
     """Normalize an agent ID to a clean lowercase identifier.
@@ -42,6 +44,28 @@ def normalize_media_type(value: str) -> str:
     if normalized is None:
         raise ValueError(f"Unknown media_type: {value!r}")
     return normalized
+
+
+def validate_master_contact_id(value: str) -> str:
+    """Validate that a master contact ID matches the canonical UUID format.
+
+    Args:
+        value: Master contact identifier to validate.
+
+    Returns:
+        The original master contact identifier unchanged.
+
+    Raises:
+        ValueError: If the identifier does not match the canonical UUID format.
+    """
+    if re.fullmatch(
+        r"[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-"
+        r"[0-9a-fA-F]{4}-[0-9a-fA-F]{12}",
+        value,
+    ) is None:
+        raise ValueError(f"master_contact_id must be UUID format, got: {value!r}")
+
+    return value
 
 
 def parse_contact_start(value: str | int | float) -> datetime:
@@ -95,3 +119,56 @@ def parse_contact_start(value: str | int | float) -> datetime:
     if parsed_datetime.tzinfo is None:
         return parsed_datetime.replace(tzinfo=UTC)
     return parsed_datetime.astimezone(UTC)
+
+
+def normalize_contact_dto(dto: ContactDto) -> ContactDto:
+    """Normalize supported fields of a contact DTO and return a new instance.
+
+    Args:
+        dto: Contact DTO to normalize.
+
+    Returns:
+        A new contact DTO with normalized fields. The ``contact_start`` field
+        is stored as a canonical UTC ISO 8601 string.
+
+    Raises:
+        ValueError: If normalization fails for any supported field.
+    """
+
+    try:
+        normalized_agent_id = normalize_agent_id(dto.agent_id)
+    except ValueError as exc:
+        raise ValueError(
+            f"Normalization failed for field 'agent_id': {exc}"
+        ) from exc
+
+    try:
+        normalized_media_type_name = normalize_media_type(dto.media_type_name)
+    except ValueError as exc:
+        raise ValueError(
+            f"Normalization failed for field 'media_type_name': {exc}"
+        ) from exc
+
+    try:
+        normalized_master_contact_id = validate_master_contact_id(dto.master_contact_id)
+    except ValueError as exc:
+        raise ValueError(
+            f"Normalization failed for field 'master_contact_id': {exc}"
+        ) from exc
+
+    try:
+        normalized_contact_start = parse_contact_start(dto.contact_start).isoformat()
+    except ValueError as exc:
+        raise ValueError(
+            f"Normalization failed for field 'contact_start': {exc}"
+        ) from exc
+
+    return ContactDto(
+        agent_id=normalized_agent_id,
+        contact_id=dto.contact_id,
+        contact_start=normalized_contact_start,
+        master_contact_id=normalized_master_contact_id,
+        media_type_name=normalized_media_type_name,
+    )
+
+

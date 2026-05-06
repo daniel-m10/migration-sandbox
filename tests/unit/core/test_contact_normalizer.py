@@ -2,10 +2,13 @@ from datetime import UTC, datetime
 
 import pytest
 
+from migration_sandbox.core.contact_dto import ContactDto
 from migration_sandbox.core.contact_normalizer import (
     normalize_agent_id,
+    normalize_contact_dto,
     normalize_media_type,
     parse_contact_start,
+    validate_master_contact_id,
 )
 
 
@@ -213,4 +216,136 @@ class TestParseContactStart:
             parse_contact_start(invalid_value)  # type: ignore[arg-type]
 
         assert str(exc_info.value) == expected_message
+
+
+class TestValidateMasterContactId:
+    def test_validate_master_contact_id_when_value_is_canonical_uuid_then_returns_value(
+        self,
+    ) -> None:
+        # Arrange
+        value = "123e4567-e89b-12d3-a456-426614174000"
+
+        # Act
+        result = validate_master_contact_id(value)
+
+        # Assert
+        assert result == value
+
+    @pytest.mark.parametrize(
+        "invalid_value",
+        [
+            "",
+            "123e4567e89b12d3a456426614174000",
+            "123e4567-e89b-12d3-a456-42661417400",
+            "123e4567-e89b-12d3-a456-4266141740000",
+            "123e4567-e89b-12d3-a456-42661417400g",
+            " 123e4567-e89b-12d3-a456-426614174000 ",
+        ],
+    )
+    def test_validate_master_contact_id_when_value_is_invalid_then_raises_value_error(
+        self,
+        invalid_value: str,
+    ) -> None:
+        # Arrange
+        expected_message = (
+            f"master_contact_id must be UUID format, got: {invalid_value!r}"
+        )
+
+        # Act / Assert
+        with pytest.raises(ValueError) as exc_info:
+            validate_master_contact_id(invalid_value)
+
+        assert str(exc_info.value) == expected_message
+
+
+class TestNormalizeContactDto:
+    def test_normalize_contact_dto_when_valid_then_returns_new_dto(
+        self,
+    ) -> None:
+        # Arrange
+        dto = ContactDto(
+            agent_id="  Agent-01!  ",
+            contact_id="contact-123",
+            contact_start="2026-05-04T10:30:45-03:00",
+            master_contact_id="123e4567-e89b-12d3-a456-426614174000",
+            media_type_name="Voice",
+        )
+
+        # Act
+        result = normalize_contact_dto(dto)
+
+        # Assert
+        assert result is not dto
+        assert result == ContactDto(
+            agent_id="agent-01",
+            contact_id="contact-123",
+            contact_start="2026-05-04T13:30:45+00:00",
+            master_contact_id="123e4567-e89b-12d3-a456-426614174000",
+            media_type_name="VOICE",
+        )
+        assert dto == ContactDto(
+            agent_id="  Agent-01!  ",
+            contact_id="contact-123",
+            contact_start="2026-05-04T10:30:45-03:00",
+            master_contact_id="123e4567-e89b-12d3-a456-426614174000",
+            media_type_name="Voice",
+        )
+
+    @pytest.mark.parametrize(
+        ("field_name", "dto"),
+        [
+            (
+                "agent_id",
+                ContactDto(
+                    agent_id="!!!",
+                    contact_id="contact-123",
+                    contact_start="2026-05-04T10:30:45Z",
+                    master_contact_id="123e4567-e89b-12d3-a456-426614174000",
+                    media_type_name="VOICE",
+                ),
+            ),
+            (
+                "media_type_name",
+                ContactDto(
+                    agent_id="agent_01",
+                    contact_id="contact-123",
+                    contact_start="2026-05-04T10:30:45Z",
+                    master_contact_id="123e4567-e89b-12d3-a456-426614174000",
+                    media_type_name="sms",
+                ),
+            ),
+            (
+                "contact_start",
+                ContactDto(
+                    agent_id="agent_01",
+                    contact_id="contact-123",
+                    contact_start="not-a-date",
+                    master_contact_id="123e4567-e89b-12d3-a456-426614174000",
+                    media_type_name="VOICE",
+                ),
+            ),
+            (
+                "master_contact_id",
+                ContactDto(
+                    agent_id="agent_01",
+                    contact_id="contact-123",
+                    contact_start="2026-05-04T10:30:45Z",
+                    master_contact_id="invalid-uuid",
+                    media_type_name="VOICE",
+                ),
+            ),
+        ],
+    )
+    def test_normalize_contact_dto_when_invalid_then_raises_wrapped_error(
+        self,
+        field_name: str,
+        dto: ContactDto,
+    ) -> None:
+        # Act / Assert
+        with pytest.raises(
+            ValueError,
+            match=rf"^Normalization failed for field '{field_name}':",
+        ):
+            normalize_contact_dto(dto)
+
 
