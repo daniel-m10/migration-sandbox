@@ -5,6 +5,10 @@ from datetime import UTC, datetime
 def normalize_agent_id(value: str) -> str:
     """Normalize an agent ID to a clean lowercase identifier.
 
+    This helper trims surrounding whitespace, lowercases the input,
+    and removes any characters other than ASCII letters, digits,
+    hyphens, and underscores.
+
     Args:
         value: Raw agent ID string.
 
@@ -22,16 +26,16 @@ def normalize_agent_id(value: str) -> str:
 
 
 def normalize_media_type(value: str) -> str:
-    """Normalize a media type string to its canonical uppercase form.
+    """Normalize a media type to its canonical uppercase value.
 
     Args:
-        value: Raw media type string (case-insensitive).
+        value: Raw media type string.
 
     Returns:
-        Canonical uppercase media type: "VOICE", "CHAT" or "EMAIL".
+        Canonical media type value.
 
     Raises:
-        ValueError: If the value does not match a known media type.
+        ValueError: If the media type is not recognized.
     """
     canonical = {"voice": "VOICE", "chat": "CHAT", "email": "EMAIL"}
     normalized = canonical.get(value.strip().lower())
@@ -58,32 +62,36 @@ def parse_contact_start(value: str | int | float) -> datetime:
     if isinstance(value, bool):
         raise ValueError(error_message)
 
-    try:
-        if isinstance(value, (int, float)):
+    if isinstance(value, (int, float)):
+        try:
             return datetime.fromtimestamp(value, tz=UTC)
+        except (OverflowError, OSError, ValueError) as exc:
+            raise ValueError(error_message) from exc
 
-        if isinstance(value, str):
-            normalized_value = value.strip()
-            if not normalized_value:
-                raise ValueError(error_message)
+    if not isinstance(value, str):
+        raise ValueError(error_message)
 
-            iso_candidate = normalized_value
-            if iso_candidate.endswith("Z"):
-                iso_candidate = f"{iso_candidate[:-1]}+00:00"
+    normalized_value = value.strip()
+    if not normalized_value:
+        raise ValueError(error_message)
 
-            try:
-                parsed_datetime = datetime.fromisoformat(iso_candidate)
-            except ValueError:
-                parsed_datetime = datetime.strptime(
-                    normalized_value,
-                    "%Y-%m-%d %H:%M:%S",
-                )
+    iso_candidate = (
+        f"{normalized_value[:-1]}+00:00"
+        if normalized_value.endswith("Z")
+        else normalized_value
+    )
 
-            if parsed_datetime.tzinfo is None:
-                return parsed_datetime.replace(tzinfo=UTC)
-            return parsed_datetime.astimezone(UTC)
-    except (OverflowError, OSError, ValueError) as exc:
-        if str(exc) == error_message:
-            raise
+    try:
+        parsed_datetime = datetime.fromisoformat(iso_candidate)
+    except ValueError:
+        try:
+            parsed_datetime = datetime.strptime(
+                normalized_value,
+                "%Y-%m-%d %H:%M:%S",
+            )
+        except ValueError as exc:
+            raise ValueError(error_message) from exc
 
-    raise ValueError(error_message)
+    if parsed_datetime.tzinfo is None:
+        return parsed_datetime.replace(tzinfo=UTC)
+    return parsed_datetime.astimezone(UTC)
